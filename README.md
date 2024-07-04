@@ -63,8 +63,8 @@ osaruonamen@osaruonamen:~$ curl 0.0.0.0:5000/stats ; echo ""
 {"users":0,"files":0}
 ```
 ## Documentation
-The user guide provides more in-depth introduction and examples of many features of FilesManager. 
-A complete and thorough documentation is available in the [API Reference](./documents/API_Reference.yaml).
+- The [user guide](./documents/user_guide.md) provides more in-depth introduction and examples of many features of FilesManager. 
+- A complete and thorough documentation is available in the [API Reference](./documents/API_Reference.yaml).
 
 ## Testing
 To be sure that everything works correctly, a [test suite](./documents/tests_document) is provided to be run after the required packages are installed. Details of the test suite and how to run it are available in the tests document.
