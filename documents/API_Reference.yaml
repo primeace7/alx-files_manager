@@ -1,0 +1,878 @@
+openapi: 3.1.0    
+info: 
+    title: Files Manager API
+    description: Provides features for easy creation and management of text and image files, and folders. 
+    version: '0.1'
+
+servers:
+  - url: http://0.0.0.0:5000/api/v1
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: Basic
+      description: Basic authentication with username and password.
+    X-Token:
+      type: apiKey
+      name: X-Token
+      in: header 
+      description: The X-Token authentication header for protected endpoints
+
+paths:
+    /status:
+        get:
+            summary: Get the file server status
+            description: Describes the state of the databases that power the api service
+            tags:
+              - Server info 
+            responses:
+                "200":
+                    description: The database service and backend servers are up and operational
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              redis:
+                                type: string
+                                description: | 
+                                 The state of the redis database. 'true' means the redis server is functional
+                                examples: ['true']
+                              db:
+                                type: string
+                                description: |
+                                 The state of the mongodb database. 'true' means the mogodb server is functional
+                                examples: ['true']
+                            
+                "500":
+                    description: The server is currently not operational and is unable to process requests
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties:
+                             error:
+                                type: string
+                                examples:
+                                  [The application is down becasue one or more  
+                                    database servers are out of service]
+                                description:
+                                    A description of the error that occured 
+
+    /stats:
+        get:
+            summary: Get the stats of files on the server
+            description: Give counts of the number of users currently using the application and the number of files that exist on the server. The file count is not limited to a user's files but is global counts of all files for all users. 
+            tags:
+              - Server info
+            responses: 
+                "200":
+                    description: OK
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              users:
+                                type: number
+                                description:
+                                 The number of users currently using the application
+                              files:
+                                type: number
+                                description:
+                                 The number of files currently served by the application
+
+    /users:
+        post:
+            summary: Create a new user
+            tags:
+              - User creation and management
+            requestBody:
+              required: true
+              content: 
+                application/json: 
+                  schema: 
+                    type: object
+                    properties: 
+                      email:
+                        type: string
+                        examples: ['user1@mail.com']
+                        description:
+                          The user email to be registered
+                      password:
+                        type: string
+                        examples: ['admin']
+                        description:
+                          The password of the user to be registered
+            responses: 
+                "201":
+                    description: New user account created successfuly
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              email:
+                                type: string
+                                enum: [user1@mail.com]
+                                description:
+                                 The user's email address
+                              id:
+                                type: string
+                                examples: [667e96b3dc9922291115a541]
+                                description:
+                                 The user's unique id
+                              createdAt:
+                                type: string
+                                examples: ['Wed, 03 Jul 2024 05:32:25 GMT']
+                                description:
+                                 The user account's creation time and date
+                "401":
+                    description: User email is already registered
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              error:
+                                type: string
+                                examples: [User already exists]
+                                description:
+                                 A description of the error that occured
+                "400":
+                    description: User email or password was not provided in request
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              error:
+                                type: string
+                                examples: ['Missing password']
+                                description:
+                                 A description of the error that occured
+        delete:
+          security:
+            - X-Token: []          
+          summary: Delete the current signed-in user
+          tags:
+            - User creation and management
+          description: When a user is deleted, all the files belonging to that user are deleted as well.
+          responses:
+            "204":
+              description: The current signed-in user and all associated files was deleted              
+
+
+    /connect:
+        get:
+            security:
+              - basicAuth: []
+            summary: Sign a user in and generate a token for the user
+            tags:
+              - User creation and management
+            description: |
+              The token generated is a UUIDv4 string and is required to access protected resources, as part of a Basic Auth scheme. Tokens are valid for 24 hours, after which a user must generate a new one.
+
+              **Note:** This endpoint requires Basic Authentication in the request header
+            responses:
+                "200":
+                    description: User signed in and Auth token generated successfully
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              token:
+                                type: string
+                                examples: [dXNlcjFAbWFpbC5jb206YWRtaW4=]
+                                description:
+                                 The user's unique Auth token
+                "401":
+                    description: User account not found, user is unregistered
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              error:
+                                type: string
+                                examples: [Unauthenticated user]
+                                description:
+                                 A description of the error that occured
+
+    /disconnect:
+        get:
+            security:
+            - X-Token: []
+            summary: Sign a user out and remove their token from database
+            tags: 
+              - User creation and management
+            description: A user's token becomes invalid after signing out. Hence, it should be discarded from the frontend and a new one should be generated if required, by signing in again.
+            responses:
+                "204":
+                    description: User signed out successfully
+                "401":
+                    description: User account not found, user is unregistered.
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              error:
+                                type: string
+                                examples: [Unauthenticated user]
+                                description:
+                                 A description of the error that occured
+
+    /users/me:
+        get:
+            security:
+              - X-Token: []
+            summary: Retrieve a user's information based on the supplied Auth token.
+            tags:
+              - User creation and management
+            description: This only works for valid Auth tokens (those generated within the last 24 hours). Expired Auth tokens will return an error. If you get an error, check to make sure your Auth token hasn't expired.
+            responses:
+                "200":
+                    description: OK
+                    content: 
+                        application/json: 
+                            schema:
+                                type: object
+                                properties:
+                                    email:
+                                     type: string
+                                     examples: [user1@mail.com]
+                                     description:
+                                      The user's email address
+                                    id:
+                                     type: string
+                                     examples: [667e96b3dc9922291115a541]
+                                     description:
+                                      The user's unique id
+                                    createdAt:
+                                      type: string
+                                      examples: ['Wed, 03 Jul 2024 05:32:25 GMT']
+                                      description:
+                                        The user account's creation time and date
+
+                "401":
+                    description: The Auth token in the request is invalid or expired, or no account was found for the user specified in the token
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              error:
+                                type: string
+                                examples: [Unauthenticated user]
+                                description:
+                                 A description of the error that occured
+
+    /files:
+        post:
+            security:
+              - X-Token: []          
+            summary: Upload a new file to the database
+            tags: 
+              - File creation
+            description: | 
+             Files (images and text files) are uploaded as the base 64 string of the file.
+
+             When image files are uploaded, 3 more copies are created, in addition to the original copy. These 3 extra copies are sub versions of the original copy with widths of 100px, 250px, and 500px respectively. Any of these sub copies, or the original can be requested subsequently. 
+             
+             **Note -** A folder cannot be uploaded with contents, it has to be created separately before putting files in it. Hence, a folder should not have a 'data' field in the request data.
+            requestBody:
+                required: true
+                content: 
+                  application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              name:
+                                type: string
+                                examples: ['example.txt']
+                                description:
+                                 Name of the file to upload
+                              type:
+                                type: string
+                                examples: ['file']
+                                enum: ['file', 'folder', 'image']
+                                description:
+                                 'Type of file to upload. Must be: file, folder, or image'
+                              parentId:
+                                type: string
+                                examples: ['0']
+                                description:
+                                 "(Optional) - The unique id of the file's parent folder. The default value is 0, meaning the file should be stored in the user's root folder"
+                              isPublic:
+                                type: string
+                                examples: ['false']
+                                enum: ['true', 'false']
+                                description:
+                                 '(Optional) - The privacy status of the file. The default value is false and it means the file is private'
+                              data:
+                                type: string
+                                examples: ['VGhpcyBpcyBhIHZlcnkgc2hvcnQgdGV4dCBmaWxlLg==']
+                                description:
+                                 'The content of the file to upload. It is only applicable for text and image files, folders have no data field. This should be the base64 string of the image or text file content.'
+                              
+            responses:
+                "201":
+                    description: File uploaded successfully
+                    content:
+                        application/json:
+                         schema:
+                            type:
+                                object
+                            properties: 
+                              id:
+                                examples: ['667ebde5ab2c853c71fbd98c']
+                                description:
+                                 Unique id of the file
+                              userId:
+                                examples: ['667e96b3dc9922291115a541']
+                                description:
+                                 File owner's unique id
+                              name:
+                                description:
+                                 Name of the file
+                                examples: [example.txt]
+                              type:
+                                description:
+                                 The file type
+                                examples: ['file']
+                              isPublic: 
+                                description:
+                                 The privacy status of the file. 'true' means public
+                                examples: ['false']
+                              parentId:
+                                examples: ['0']
+                                description:
+                                 The unique id of the file's parent folder. A parentId of 0 means the file is stored in the user's root folder
+                              createdAt:
+                                type: string
+                                examples: ['Wed, 03 Jul 2024 05:32:25 GMT']
+                                description:
+                                 The file's creation time and date       
+                              updatedAt:
+                                type: string
+                                examples: ['Wed, 03 Jul 2024 05:32:25 GMT']
+                                description:
+                                 The file's last update time and date
+                                                                                      
+                "401":
+                    description: The Auth token in the request is invalid or expired, or no account was found for the user specified in the token
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              error:
+                                type: string
+                                examples: ['Unauthenticated user']
+                                description:
+                                 A description of the error that occured
+                "400":
+                    description: One or more file attributes is missing, the specified parent folder for the file wasn't found, or the specified parent is not a folder
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              error:
+                                type: string
+                                examples: ['Parent is not a folder']
+                                description:
+                                 A description of the error that occured
+        get:
+            security:
+              - X-Token: []          
+            summary: Retrieve all user files stored in a folder specified by its id. 
+            tags:
+              - File retrieval
+            description: |
+              This endpoint optionally accepts a parentId (default=0) and page (zero-indexed, default=0) as query parameters. 
+              
+              When a parentId is provided, all user files in the folder whose id matches the provided parentId are returned. By default (when a parentId is not provided), all files in the user's root folder are returned.
+
+              When a page isn't provided, the first 20 files of the appropriate folder is returned. When a page n is provided, the first n * 20 files are skipped. By default (page=0), no file is skipped and the first 20 files are returned. If page=1, for example, files 21-40 are returned.
+            parameters: 
+              - name: parentId
+                in: query
+                required: false
+                description: The id of the folder to retrieve files from
+                schema:
+                  type: string
+              - name: page
+                in: query
+                required: false
+                description: The results page to fetch and return
+                schema:
+                  type: number
+            responses:
+                "200":
+                    description: OK
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: array
+                            items: 
+                                type: object
+                                properties: 
+                                  id:
+                                   examples: ['667ebde5ab2c853c71fbd98c']
+                                   description:
+                                    Unique id of the file
+                                  userId:
+                                   examples: ['667e96b3dc9922291115a541']
+                                   description:
+                                    File owner's unique id
+                                  name:
+                                   description:
+                                    Name of the file
+                                   examples: ['example.txt']
+                                  type:
+                                   description:
+                                    The file type
+                                   examples: ['file']
+                                  isPublic: 
+                                   description:
+                                    The privacy status of the file. 'true' means public
+                                   examples: ['false']
+                                  parentId:
+                                   examples: ['0']
+                                   description:
+                                    The unique id of the file's parent folder. When a parentId is not provided, all files in the user's root folder are returned
+                                  createdAt:
+                                    type: string
+                                    examples: ['Wed, 03 Jul 2024 05:32:25 GMT']
+                                    description:
+                                      The file's creation time and date
+                                  updatedAt:
+                                    type: string
+                                    examples: ['Wed, 03 Jul 2024 05:32:25 GMT']
+                                    description:
+                                      The file's last update time and date
+                "401":
+                    description: The Auth token in the request is invalid or expired, or no account was found for the user specified in the token
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              error:
+                                type: string
+                                examples: ['Unauthenticated user']
+                                description:
+                                 A description of the error that occured
+
+    /files/{id}:
+        parameters: 
+        - name: id
+          in: path
+          required: true
+          description: The unique identifier of the file to get the metadata of
+          schema:
+            type: string
+        get:
+            security:
+              - X-Token: []          
+            summary: Retrieve a single file metadata identified by the supplied id.
+            tags:
+              - File retrieval
+            description: This endpoint returns only the metadata of the requested file. When a folder file is retrieved, the contents are not returned with it, only the metadata. A folder's content have to be retrieved separately.
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                         schema:
+                            type:
+                                object
+                            properties: 
+                              id:
+                                examples: ['667ebde5ab2c853c71fbd98c']
+                                description:
+                                 Unique id of the file
+                              userId:
+                                examples: ['667e96b3dc9922291115a541']
+                                description:
+                                 File owner's unique id
+                              name:
+                                description:
+                                 Name of the file
+                                examples: ['filesManager.txt']
+                              type:
+                                description:
+                                 The file type
+                                examples: ['file']
+                              isPublic: 
+                                description:
+                                 The privacy status of the file. 'true' means the file is public
+                                examples: ['false']
+                              parentId:
+                                examples: ['0']
+                                description:
+                                 The unique id of the file's parent folder
+                              createdAt:
+                                type: string
+                                examples: ['Wed, 03 Jul 2024 05:32:25 GMT']
+                                description:
+                                  The file's creation time and date
+                              updatedAt:
+                                type: string
+                                examples: ['Wed, 03 Jul 2024 05:32:25 GMT']
+                                description:
+                                  The file's last update time and date
+                "401":
+                    description: The Auth token in the request is invalid or expired, or no account was found for the user specified in the token
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              error:
+                                type: string
+                                examples: ['Unauthenticated user']
+                                description:
+                                 A description of the error that occured
+                "404":
+                    description: File not found
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              error:
+                                type: string
+                                examples: ['Not found']
+                                description:
+                                 A description of the error that occured
+        put:
+            security:
+              - X-Token: []          
+            summary: Update or edit a text/image file
+            tags:
+              - File updating
+            description: | 
+             This feature is only available for text and image files. An updated text file will retain it's previous metadata except the update time, which will be the time when it was last updated. 
+
+             To update a file, provide its unique id and any other field you wish to update, in the request body. Updatable fields are: name and data, and parentId. Changing a file's parentId moves it to another folder.
+            
+             When an image file is updated, it replaces the previous version, including the sub-versions. When a text file is updated, the new file content overwrites the previous content.
+             
+             By default, the update time of folder files is automatically updated when any of it's content is modified.
+            requestBody:
+              required: true
+              content: 
+                application/json: 
+                        schema: 
+                          type: object
+                          properties: 
+                            id:
+                              type: string
+                              examples: ['']
+                              description:
+                                Name of the file to upload
+                            name:
+                              type: string
+                              examples: ['filesManager.txt']
+                              enum: ['file', 'folder', 'image']
+                              description:
+                                'Type of file to upload. Must be: file, folder, or image'
+            responses:
+              "200":
+                description: OK
+                content: 
+                        application/json: 
+                          schema: 
+                            type: array
+                            items: 
+                                type: object
+                                properties: 
+                                  id:
+                                   examples: ['667ebde5ab2c853c71fbd98c']
+                                   description:
+                                    Unique id of the file
+                                  userId:
+                                   examples: ['667e96b3dc9922291115a541']
+                                   description:
+                                    File owner's unique id
+                                  name:
+                                   description:
+                                    Name of the file
+                                   examples: ['fileManager.txt']
+                                  type:
+                                   description:
+                                    The file type
+                                   examples: ['file']
+                                  isPublic: 
+                                   description:
+                                    The privacy status of the file. 'true' means public
+                                   examples: ['false']
+                                  parentId:
+                                   examples: ['0']
+                                   description:
+                                    The unique id of the file's parent folder
+                                  createdAt:
+                                    type: string
+                                    examples: ['Wed, 03 Jul 2024 05:32:25 GMT']
+                                    description:
+                                      The file's creation time and date
+                                  updatedAt:
+                                    type: string
+                                    examples: ['Wed, 03 Jul 2024 07:12:44 GMT']
+                                    description:
+                                      The file's last update time and date
+
+        delete:
+            security:
+              - X-Token: []          
+            summary: Delete a file
+            tags:
+              - File deletion
+            description: When a folder is deleted, all it's content are deleted as well. When an image is deleted, its sub-versions are deleted as well.
+            responses:
+              "204":
+                description: The file was deleted successfully
+
+    /files/{id}/publish:
+        put:
+            security:
+              - X-Token: []          
+            summary: Publish a file to make it public
+            tags:
+              - File updating
+            description: This makes the file available to anyone, with or without authentication. When a folder is made public, all of its content are made public as well. When an image is made public, all of its sub-versions are made public as well.
+            parameters: 
+              - name: id
+                in: path
+                required: true
+                description: The unique identifier of the file to publish
+                schema:
+                  type: string
+            responses:
+                "200":
+                    description: File published successfully
+                    content:
+                        application/json:
+                         schema:
+                            type:
+                                object
+                            properties: 
+                              id:
+                                examples: ['667ebde5ab2c853c71fbd98c']
+                                description:
+                                 Unique id of the file
+                              userId:
+                                examples: ['667e96b3dc9922291115a541']
+                                description:
+                                 File owner's unique id
+                              name:
+                                examples: ['filesManager.txt']
+                                description:
+                                 Name of the file
+                              type:
+                                description:
+                                 The file type
+                                examples: ['file']
+                              isPublic: 
+                                description:
+                                 The privacy status of the file. 'true' means the file is public
+                                enum:
+                                    - 'true'
+                              parentId:
+                                examples: ['0']
+                                description:
+                                 The unique id of the file's parent folder
+                              createdAt:
+                                type: string
+                                examples: ['Wed, 03 Jul 2024 05:32:25 GMT']
+                                description:
+                                  The file's creation time and date
+                              updatedAt:
+                                type: string
+                                examples: ['Wed, 03 Jul 2024 07:18:04 GMT']
+                                description:
+                                  The file's last update time and date
+                "401":
+                    description: The Auth token in the request is invalid or expired, or no account was found for the user specified in the token
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              error:
+                                type: string
+                                examples: ['Unauthenticated user']
+                                description:
+                                 A description of the error that occured
+                "404":
+                    description: File not found
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              error:
+                                type: string
+                                examples: ['Not found']
+                                description:
+                                 A description of the error that occured
+
+    /files/{id}/unpublish:
+        put:
+            security:
+              - X-Token: []          
+            summary: Unpublish a file to make it private
+            tags:
+              - File updating
+            description: This makes the file available to the owner alone. When a folder is made private, all of its content are made private as well. When an image is made private, all of its sub-versions are made private as well.
+            parameters: 
+              - name: id
+                in: path
+                required: true
+                description: The unique identifier of the file to unpublish
+                schema:
+                  type: string
+            responses:
+                "200":
+                    description: File published successfully
+                    content:
+                        application/json:
+                         schema:
+                            type:
+                                object
+                            properties: 
+                              id:
+                                examples: ['667ebde5ab2c853c71fbd98c']
+                                description:
+                                 Unique id of the file
+                              userId:
+                                examples: ['667e96b3dc9922291115a541']
+                                description:
+                                 File owner's unique id
+                              name:
+                                examples: ['filesManager.txt']
+                                description:
+                                 Name of the file
+                              type:
+                                description:
+                                 The file type
+                                examples: ['file']
+                              isPublic: 
+                                description:
+                                 The privacy status of the file. 'true' means the file is public
+                                enum:
+                                    - 'false'
+                              parentId:
+                                examples: ['0']
+                                description:
+                                 The unique id of the file's parent folder
+                              createdAt:
+                                type: string
+                                examples: ['Wed, 03 Jul 2024 05:32:25 GMT']
+                                description:
+                                  The file's creation time and date
+                              updatedAt:
+                                type: string
+                                examples: ['Wed, 03 Jul 2024 07:19:41 GMT']
+                                description:
+                                  The file's last update time and date
+                "401":
+                    description: The Auth token in the request is invalid or expired, or no account was found for the user specified in the token
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              error:
+                                type: string
+                                examples: ['Unauthenticated user']
+                                description:
+                                 A description of the error that occured
+                "404":
+                    description: File not found
+                    content: 
+                        application/json: 
+                          schema: 
+                            type: object
+                            properties: 
+                              error:
+                                type: string
+                                examples: ['Not found']
+                                description:
+                                 A description of the error that occured
+
+    /files/{id}/data:
+      get:
+          security:
+            - X-Token: []        
+          summary: Retrieve the content of a file identified by the supplied id 
+          tags:
+            - File updating
+          description: Returns the data of the file with the specified id. The data can be text or an image file
+          parameters:
+          - name: id
+            in: path
+            required: true
+            description: The unique identifier of the file to fetch data from
+            schema:
+              type: string
+          - name: size
+            in: query
+            required: false
+            description: The size of the image sub-version to retrieve
+            schema:
+              type: number
+          responses:
+              "200":
+                  description: The file data was fetched successfully
+                  content:
+                    text/plain:
+                      schema:
+                        type: string
+                        examples:
+                          [This is a very short text file.]
+                    image/*:
+                      schema:
+                        type: object
+                        format: binary
+              "400":
+                  description: The requested file is a folder. The content of a folder cannot be retrieved through the folder. They have to be retrieved separately
+                  content: 
+                      application/json: 
+                        schema: 
+                          type: object
+                          properties: 
+                            error:
+                              type: string
+                              examples: ["A folder cannot return content"]
+                              description:
+                                A description of the error that occured
+              "404":
+                  description: File doesn't exist, or is private
+                  content: 
+                      application/json: 
+                        schema: 
+                          type: object
+                          properties: 
+                            error:
+                              type: string
+                              examples: ['Not found']
+                              description:
+                                A description of the error that occured
+              "500":
+                  description: The server could not read the content of the requested file
+                  content: 
+                      application/json: 
+                        schema: 
+                          type: object
+                          properties: 
+                            error:
+                              type: string
+                              examples: ['ENOENT: no such file or directory']
+                              description:
+                                A description of the error that occured
