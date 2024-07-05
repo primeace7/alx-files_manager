@@ -28,7 +28,7 @@ Text-based files and images are uploaded as base64-encoded strings. However, whe
 ## Getting started
 #### Clone this repository and *cd* into it:
 ```
-osaruonamen@osaruonamen:~$ git clone https://github.com/primace7/files_manager && cd files_manager
+osaruonamen@osaruonamen:~$ git clone https://github.com/primeace7/files_manager.git && cd files_manager
 ```
 #### Install the required packages:
 ```
