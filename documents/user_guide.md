@@ -56,7 +56,7 @@ osaruonamen@osaruonamen:~$  curl -XPOST 0.0.0.0:5000/files -H "X-Token: d2fcbc02
 osaruonamen@osaruonamen:~$ curl -XPOST 0.0.0.0:5000/files -H "X-Token: d2fcbc02-87f3-4e06-9f80-6d619ee9829c" -H "Content-Type: application/json" -d '{ "name": "myFolder", "type": "folder" }' ; echo ""
 {"name":"myFolder","type":"folder","parentId":0,"isPublic":false,"userId":"6686bc9609d689817df23943","createdAt":"Thu, 04 Jul 2024 15:28:46 GMT","updatedAt":"Thu, 04 Jul 2024 15:28:46 GMT","id":"6686bfae5ce18583661303a3"}
 ```
-*Note*: for effieciency and brevity, the process of creating an image is best done via a high-level language script, which is not shown here, but detailed information about image creation is availabe in the [API Reference](./API_Reference.yaml).
+*Note*: for effieciency and brevity, the process of creating an image is best done via a high-level language script, which is not shown here, but detailed information about image creation is availabe in the [API Reference](./API_Reference.yml).
 
 ### Retrieve the content of the text file using the file id:
 ```

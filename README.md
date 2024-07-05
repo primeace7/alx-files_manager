@@ -56,7 +56,7 @@ osaruonamen@osaruonamen:~/files_manager$ npm run start-worker
 osaruonamen@osaruonamen:~$ curl 0.0.0.0:5000/status ; echo ""
 {"redis":true,"db":true}
 ```
-See the [tests document](./documents/tests_document) for more info on running complete tests for the entire application.
+See the [tests document](./documents/tests_document.md) for more info on running complete tests for the entire application.
 - Check the number of users using the application, and the number of files for all users:
 ```
 osaruonamen@osaruonamen:~$ curl 0.0.0.0:5000/stats ; echo ""
@@ -64,7 +64,7 @@ osaruonamen@osaruonamen:~$ curl 0.0.0.0:5000/stats ; echo ""
 ```
 ## Documentation
 - The [user guide](./documents/user_guide.md) provides more in-depth introduction and examples of many features of FilesManager. 
-- A complete and thorough documentation is available in the [API Reference](./documents/API_Reference.yaml).
+- A complete and thorough documentation is available in the [API Reference](./documents/API_Reference.yml).
 
 ## Testing
-To be sure that everything works correctly, a [test suite](./documents/tests_document) is provided to be run after the required packages are installed. Details of the test suite and how to run it are available in the tests document.
+To be sure that everything works correctly, a [test suite](./documents/tests_document.md) is provided to be run after the required packages are installed. Details of the test suite and how to run it are available in the tests document.
