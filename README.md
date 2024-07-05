@@ -20,16 +20,21 @@ Text-based files and images are uploaded as base64-encoded strings. However, whe
 - Publish/unpublish files to control their public visibility. Anyone can retrieve the content of a public file via its url
 - Get a sub-version of an uploaded image. When an image file is uploaded, 3 sub-versions of widths 100px, 250px, and 500px are created in the background, in addition to the original image.
 
+## Requirements
+- Nodejs version 21 or greater. Version 21 and above is required to run the test suit because it relies a lot on the Fetch API, which is only available from version 21 upwards.
+- Redis server must be installed and running
+- MongoDB must be installed and running
+
 ## Getting started
-- Clone this repository and *cd* into it:
+#### Clone this repository and *cd* into it:
 ```
 osaruonamen@osaruonamen:~$ git clone https://github.com/primace7/files_manager && cd files_manager
 ```
-- Install the required packages:
+#### Install the required packages:
 ```
 osaruonamen@osaruonamen:~/files_manager$ npm install
 ```
-- Start the api server:
+#### Start the api server:
 ```
 osaruonamen@osaruonamen:~/files_manager$ npm run start-server
 
@@ -40,7 +45,7 @@ osaruonamen@osaruonamen:~/files_manager$ npm run start-server
 .
 Server running on port 5000
 ```
-- In a seperate terminal, start the task worker to process background jobs:
+#### In a seperate terminal, start the task worker to process background jobs:
 ```
 osaruonamen@osaruonamen:~/files_manager$ npm run start-worker
 
@@ -51,20 +56,20 @@ osaruonamen@osaruonamen:~/files_manager$ npm run start-worker
 .
 [nodemon] starting `babel-node --presets @babel/preset-env ./worker.js`
 ```
-- Check the database status (although the tests cover this, you can also do this manually):
+#### Check the database status (although the tests cover this, you can also do this manually):
 ```
 osaruonamen@osaruonamen:~$ curl 0.0.0.0:5000/status ; echo ""
 {"redis":true,"db":true}
 ```
 See the [tests document](./documents/tests_document.md) for more info on running complete tests for the entire application.
-- Check the number of users using the application, and the number of files for all users:
+### Check the number of users using the application, and the number of files for all users:
 ```
 osaruonamen@osaruonamen:~$ curl 0.0.0.0:5000/stats ; echo ""
 {"users":0,"files":0}
 ```
 ## Documentation
 - The [user guide](./documents/user_guide.md) provides more in-depth introduction and examples of many features of FilesManager. 
-- A complete and thorough documentation is available in the [API Reference](./documents/API_Reference.yml).
+- A complete and thorough documentation is available in the [API Reference](https://filesmanager.apidocumentation.com/reference).
 
 ## Testing
 To be sure that everything works correctly, a [test suite](./documents/tests_document.md) is provided to be run after the required packages are installed. Details of the test suite and how to run it are available in the tests document.
